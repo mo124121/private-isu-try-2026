@@ -1,8 +1,8 @@
-- name: Restart webapp
+---
+- name: Restart Go service
   become: true
-  become_user: root
-  ansible.builtin.systemd:
-    name: isupipe.rust
+  ansible.builtin.systemd_service:
+    name: isu-go.service
     state: restarted
     daemon_reload: true
-  listen: restart_webapp
+  listen: Restart Go service

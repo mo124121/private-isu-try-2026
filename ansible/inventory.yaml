@@ -10,6 +10,8 @@ all:
     db_ip: "{{ internal_ips.S1 }}"
     main_web_ip: "{{ internal_ips.S1 }}"
     db_user_hosts: []
+    webapp_deploy_dir: /home/isucon/private_isu/webapp/golang
+    webapp_binary_name: app
     ansible_user: ubuntu
   children:
     target:

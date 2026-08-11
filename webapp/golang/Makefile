@@ -1,4 +1,11 @@
-all: app
+.PHONY: all build test
 
-app: *.go go.mod go.sum
-	go build -o app
+all: build
+
+build: app
+
+test:
+	go test ./...
+
+app: *.go go.mod go.sum Makefile
+	go build -trimpath -o app .

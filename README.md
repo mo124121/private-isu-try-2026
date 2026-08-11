@@ -30,6 +30,26 @@ sudo systemctl restart isuconxx-go #再起動
 
 環境によって微妙に変わるので適宜読み替えること
 
+## ローカルでのGo確認
+
+```sh
+cd webapp/golang
+make test
+make build
+```
+
+`make test` と `make build` はローカル環境だけで完結します。実際に起動して画面やDBアクセスまで確認する場合は、MySQLとMemcachedを用意したうえで `env.sh` 相当の環境変数を設定してください。
+
+## Goのnode側デプロイ
+
+`web.yaml` はソースをnodeへ同期し、node上でテスト・ビルドしてから `isu-go.service` へ切り替えます。実行前に `--check --diff` で確認できます。
+
+```sh
+cd ansible
+ansible-playbook -i inventory.yaml web.yaml --check --diff
+ansible-playbook -i inventory.yaml web.yaml
+```
+
 ## メモ
 
 issue切るときに、pproteinなら測定結果のリンクをそのままはればみんなで確認できる。  

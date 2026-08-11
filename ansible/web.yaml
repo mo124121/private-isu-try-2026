@@ -1,17 +1,19 @@
 ---
-- name: Build
-  hosts: localhost
+- name: Deploy Go web application
+  hosts: webapp
+  become: true
   tasks:
-    - name: Import build
+    - name: Synchronize source and public assets
+      ansible.builtin.import_role:
+        name: web
+        tasks_from: sync
+
+    - name: Import target-side build
       ansible.builtin.import_role:
         name: web
         tasks_from: build
 
-- name: Deploy
-  hosts: webapp
-  become: true
-  tasks:
-    - name: Import Deploy
+    - name: Switch systemd service to Go
       ansible.builtin.import_role:
         name: web
         tasks_from: deploy

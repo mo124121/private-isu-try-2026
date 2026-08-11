@@ -1,4 +1,34 @@
-- name: Build webapp
-  ansible.builtin.shell:
-    chdir: ../webapp/go/
-    cmd: GOOS=linux GOARCH=amd64 go build -o isupipe .
+---
+- name: Check current Go binary
+  ansible.builtin.stat:
+    path: "{{ webapp_deploy_dir }}/{{ webapp_binary_name }}"
+    checksum_algorithm: sha256
+  become: true
+  become_user: isucon
+  register: webapp_binary_before
+  changed_when: false
+
+- name: Run tests and build on the target
+  ansible.builtin.command:
+    cmd: make test app
+    chdir: "{{ webapp_deploy_dir }}"
+  become: true
+  become_user: isucon
+  environment:
+    PATH: "/home/isucon/.local/go/bin:/usr/local/bin:/usr/bin:/bin"
+  changed_when: false
+
+- name: Check built Go binary
+  ansible.builtin.stat:
+    path: "{{ webapp_deploy_dir }}/{{ webapp_binary_name }}"
+    checksum_algorithm: sha256
+  become: true
+  become_user: isucon
+  register: webapp_binary_after
+  changed_when: false
+
+- name: Decide whether Go service needs a restart
+  ansible.builtin.set_fact:
+    webapp_build_changed: >-
+      {{ (webapp_binary_before.stat.checksum | default('')) !=
+         (webapp_binary_after.stat.checksum | default('')) }}

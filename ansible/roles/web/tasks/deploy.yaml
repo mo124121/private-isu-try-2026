@@ -1,6 +1,37 @@
-- name: Deploy webapp
-  become: true
+---
+- name: Install Go systemd unit
   ansible.builtin.copy:
-    src: ../webapp/go/isupipe
-    dest: /home/isucon/webapp/go/
-  notify: restart_webapp
+    src: etc/systemd/system/isu-go.service
+    dest: /etc/systemd/system/isu-go.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: false
+  notify: Restart Go service
+
+- name: Stop and disable Ruby implementation
+  ansible.builtin.systemd_service:
+    name: isu-ruby.service
+    state: stopped
+    enabled: false
+
+- name: Enable and start Go implementation
+  ansible.builtin.systemd_service:
+    name: isu-go.service
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Restart Go after a new binary was built
+  ansible.builtin.systemd_service:
+    name: isu-go.service
+    state: restarted
+  when: webapp_build_changed | default(false)
+
+- name: Flush Go service handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Check Go application locally
+  ansible.builtin.command:
+    cmd: curl --fail --silent --show-error http://127.0.0.1:8080/
+  changed_when: false

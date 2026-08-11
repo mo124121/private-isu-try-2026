@@ -1,0 +1,82 @@
+---
+- name: Ensure Go application directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: isucon
+    group: isucon
+    mode: "0775"
+  loop:
+    - "{{ webapp_deploy_dir }}"
+    - "{{ webapp_deploy_dir }}/templates"
+    - /home/isucon/private_isu/webapp/public
+    - /home/isucon/private_isu/webapp/public/css
+    - /home/isucon/private_isu/webapp/public/img
+    - /home/isucon/private_isu/webapp/public/js
+
+- name: Synchronize Go source files
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ webapp_deploy_dir }}/{{ item | basename }}"
+    owner: isucon
+    group: isucon
+    mode: "0664"
+  loop:
+    - "{{ playbook_dir }}/../webapp/golang/.gitignore"
+    - "{{ playbook_dir }}/../webapp/golang/Dockerfile"
+    - "{{ playbook_dir }}/../webapp/golang/Makefile"
+    - "{{ playbook_dir }}/../webapp/golang/app.go"
+    - "{{ playbook_dir }}/../webapp/golang/go.mod"
+    - "{{ playbook_dir }}/../webapp/golang/go.sum"
+
+- name: Synchronize Go setup script
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../webapp/golang/setup.sh"
+    dest: "{{ webapp_deploy_dir }}/setup.sh"
+    owner: isucon
+    group: isucon
+    mode: "0775"
+
+- name: Synchronize Go templates
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ webapp_deploy_dir }}/templates/{{ item | basename }}"
+    owner: isucon
+    group: isucon
+    mode: "0664"
+  loop: "{{ lookup('ansible.builtin.fileglob', playbook_dir ~ '/../webapp/golang/templates/*', wantlist=True) }}"
+
+- name: Synchronize public CSS
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/home/isucon/private_isu/webapp/public/css/{{ item | basename }}"
+    owner: isucon
+    group: isucon
+    mode: "0664"
+  loop: "{{ lookup('ansible.builtin.fileglob', playbook_dir ~ '/../webapp/public/css/*', wantlist=True) }}"
+
+- name: Synchronize public images
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/home/isucon/private_isu/webapp/public/img/{{ item | basename }}"
+    owner: isucon
+    group: isucon
+    mode: "0664"
+  loop: "{{ lookup('ansible.builtin.fileglob', playbook_dir ~ '/../webapp/public/img/*', wantlist=True) }}"
+
+- name: Synchronize public JavaScript
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/home/isucon/private_isu/webapp/public/js/{{ item | basename }}"
+    owner: isucon
+    group: isucon
+    mode: "0664"
+  loop: "{{ lookup('ansible.builtin.fileglob', playbook_dir ~ '/../webapp/public/js/*', wantlist=True) }}"
+
+- name: Synchronize public favicon
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../webapp/public/favicon.ico"
+    dest: /home/isucon/private_isu/webapp/public/favicon.ico
+    owner: isucon
+    group: isucon
+    mode: "0664"
