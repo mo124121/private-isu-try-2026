@@ -1,9 +1,6 @@
----
-- name: Prepare nginx deployment
+- name: Deploy nginx config
   hosts: nginx
-  gather_facts: false
   tasks:
-    - name: Explain initial state
-      ansible.builtin.debug:
-        msg: 当日回収した nginx 設定を role 化してから、この playbook で配布します。
-
+    - name: Import nginx role
+      ansible.builtin.import_role:
+        name: nginx

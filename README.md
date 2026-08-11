@@ -1,45 +1,36 @@
-# ISUCON preparation repository
+# isucon-14
 
-ISUCON14 参加時の「競技開始前」リポジトリを基準にした、当日作業用の雛形です。
-問題固有のパス、サービス名、nginx/MySQL 設定は、競技環境を確認してから追加します。
+ISUCON14のコンテストコード
 
-## 開始直後に設定するもの
+## 本番作業用リンク集
 
-1. `ansible/inventory.yaml` の接続先、ユーザー、内部 IP を設定する。
-2. 採用言語のソースを `webapp/` 以下へ回収する。
-3. `webapp_source_dir`、`webapp_deploy_dir`、`webapp_binary_name`、
-   `webapp_service_name` を実機の構成に合わせる。
-4. 実機の nginx/MySQL 設定を回収し、確認後に Ansible role 化する。
+- [pprotein](http://isucon-o11y:9000)  
+- [jaeger](http://isucon-o11y:16686)  
+- [prometheus + クエリ](http://isucon-o11y:9090/query?g0.expr=100+-+(avg+by+(instance)+(irate(node_cpu_seconds_total%7Bmode%3D%22idle%22%7D%5B5m%5D))+*+100)&g0.show_tree=0&g0.tab=graph&g0.range_input=15m&g0.res_type=auto&g0.res_density=medium&g0.display_mode=lines&g0.show_exemplars=0&g1.expr=irate(namedprocess_namegroup_cpu_seconds_total%5B5m%5D)&g1.show_tree=0&g1.tab=graph&g1.range_input=15m&g1.res_type=auto&g1.res_density=medium&g1.display_mode=lines&g1.show_exemplars=0)  
 
-`webapp_service_name` は意図しないサービスを再起動しないよう、初期値では
-デプロイが失敗する値にしています。
-
-## よく使うコマンド
+## スニペット集
 
 ```sh
+# ansible playbookの実行
 cd ansible
+ansible-playbook -i inventory.yaml web.yaml
 
-# 疎通確認
-ansible all -m ping
+# sshログイン
+ssh ubuntu@server1
+ssh isucon@server1 #ユーザ次第
 
-# 内容を確認（対象ホストは変更しない）
-ansible-playbook web.yaml --syntax-check
-ansible-playbook web.yaml --check --diff
+# ログの閲覧
+journalctl -xeu isuconxxx-go #サービス名は注意 eオプションで一番最後に飛ぶ
+##ログを検索したいときは/を押して続ければいい、viスタイル
 
-# Go バイナリをローカルビルドし、1台ずつ配布・再起動
-ansible-playbook web.yaml --diff
-
-# 個別グループへ限定する場合
-ansible-playbook web.yaml --limit webapp01 --diff
+# サービスの操作
+sudo systemctl cat isuconxxx-go #サービス定義ファイルの確認
+sudo systemctl restart isuconxx-go #再起動
 ```
 
-## 構成
+環境によって微妙に変わるので適宜読み替えること
 
-- `ansible/web.yaml`: Linux 向けビルド、バイナリ・テンプレート配布、systemd 再起動
-- `ansible/nginx.yaml`: 当日回収した設定を追加するための入口
-- `ansible/db.yaml`: 当日回収した設定を追加するための入口
-- `ansible/all.yaml`: 確認済み playbook の一括実行用
-- `go/isuutil`: Go 実装へ必要なものだけ取り込むための持ち込み用ユーティリティ
-- `webapp/`: 競技開始後に回収するアプリケーション（開始前は未配置）
+## メモ
 
-監視基盤は別途構築する前提のため、このリポジトリでは管理しません。
+issue切るときに、pproteinなら測定結果のリンクをそのままはればみんなで確認できる。  
+jaegerとprometheusは流れて行ってしまうのでスクショとる方がいいかも。

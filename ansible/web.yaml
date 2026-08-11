@@ -1,28 +1,17 @@
 ---
-- name: Build web application
+- name: Build
   hosts: localhost
-  gather_facts: false
   tasks:
-    - name: Build Linux binary
+    - name: Import build
       ansible.builtin.import_role:
         name: web
         tasks_from: build
 
-- name: Deploy web application
+- name: Deploy
   hosts: webapp
   become: true
-  serial: 1
   tasks:
-    - name: Validate deployment variables
-      ansible.builtin.assert:
-        that:
-          - webapp_service_name != "CHANGE_ME.service"
-          - webapp_deploy_dir | length > 1
-          - webapp_binary_name | length > 0
-        fail_msg: inventory.yaml の当日用デプロイ変数を設定してください。
-
-    - name: Deploy application
+    - name: Import Deploy
       ansible.builtin.import_role:
         name: web
         tasks_from: deploy
-

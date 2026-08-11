@@ -1,0 +1,47 @@
+# DBサーバへのアクセス許可 DBを分離する場合やローカルからmysqlを叩きたい場合などに使う
+- name: Create isucon user with full privileges
+  become: true
+  ansible.builtin.shell: |
+    mysql --execute="
+      CREATE USER IF NOT EXISTS 'isucon'@'{{ item }}' IDENTIFIED BY 'isucon';
+      GRANT ALL PRIVILEGES ON *.* TO 'isucon'@'{{ item }}' WITH GRANT OPTION;
+    "
+  args:
+    executable: /bin/bash
+  with_items:
+    - 'localhost'
+    - 'isucon-o11y'
+    # - "{{ internal_ips.S1 }}"
+    # - "{{ internal_ips.S2 }}"
+    # - "{{ internal_ips.S3 }}"
+
+- name: Deploy mysqld.cnf
+  become: true
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: restart_db
+  with_items:
+    - etc/mysql/mysql.conf.d/mysqld.cnf
+
+## maria dbの場合はこっちをいじる必要があるかも
+# - name: Set up maria db
+#   become: true
+#   community.general.ini_file:
+#     dest: /etc/mysql/mariadb.conf.d/50-server.cnf # ISUCON11予選のパス
+#     owner: root
+#     group: root
+#     mode: "0644"
+#     section: mysqld
+#     option: "{{item.0}}"
+#     value: "{{item.1}}"
+#   loop:
+#     - ["bind-address", "0.0.0.0"]
+#     - ["slow_query_log", "1"]
+#     - ["slow_query_log_file", "/var/log/mysql/mysql-slow.log"]
+#     - ["long_query_time", " 0"]
+#   notify: restart_mysql

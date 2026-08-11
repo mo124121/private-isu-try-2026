@@ -1,0 +1,18 @@
+# 本番は使うことはないplaybook
+# 過去問解くときはこれで実行→結果を保存できる
+
+- name: A record
+  hosts: all
+  tasks:
+    - name: Import a record role
+      ansible.builtin.import_role:
+        name: bench
+        tasks_from: arecord
+
+- name: Bench
+  hosts: benchmarker
+  tasks:
+    - name: Import bench role
+      ansible.builtin.import_role:
+        name: bench
+        tasks_from: run

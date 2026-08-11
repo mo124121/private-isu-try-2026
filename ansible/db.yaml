@@ -1,9 +1,6 @@
----
-- name: Prepare database deployment
+- name: Deploy db config
   hosts: db
-  gather_facts: false
   tasks:
-    - name: Explain initial state
-      ansible.builtin.debug:
-        msg: 当日回収した MySQL/MariaDB 設定を role 化してから、この playbook で配布します。
-
+    - name: Import db role
+      ansible.builtin.import_role:
+        name: db

@@ -1,8 +1,8 @@
----
 - name: Restart webapp
-  ansible.builtin.systemd_service:
-    name: "{{ webapp_service_name }}"
+  become: true
+  become_user: root
+  ansible.builtin.systemd:
+    name: isupipe.rust
     state: restarted
     daemon_reload: true
-  listen: Restart webapp
-
+  listen: restart_webapp

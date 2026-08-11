@@ -1,0 +1,10 @@
+--- #ファイルコピーの方が楽かもしれない
+- name: Replace XXXXX
+  ansible.builtin.lineinfile:
+    path: "/home/isucon/env.sh"
+    regexp: '^XXXXX='
+    line: "XXXXX={{ nginx_ip }}"
+    backup: true  # 変更前にバックアップを作成します
+  notify: 
+    - restart_webapp
+    - restart_db

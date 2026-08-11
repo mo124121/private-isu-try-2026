@@ -1,5 +1,10 @@
+# まとめて実行用
 ---
-# 当日の構成確認後、必要な playbook をここへ追加する。
+- name: Env
+  ansible.builtin.import_playbook: env.yaml
+- name: Db
+  ansible.builtin.import_playbook: db.yaml
 - name: Web
   ansible.builtin.import_playbook: web.yaml
-
+- name: Nginx
+  ansible.builtin.import_playbook: nginx.yaml
