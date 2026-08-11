@@ -405,7 +405,12 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 	results := []Post{}
 
-	err := db.SelectContext(ctx, &results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC")
+	err := db.SelectContext(ctx, &results, `
+		SELECT p.id, p.user_id, p.body, p.mime, p.created_at
+		FROM posts AS p
+		INNER JOIN users AS u ON u.id = p.user_id AND u.del_flg = 0
+		ORDER BY p.created_at DESC
+		LIMIT ?`, postsPerPage)
 	if err != nil {
 		log.Print(err)
 		return
