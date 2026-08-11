@@ -39,6 +39,7 @@ ansible-playbook web.yaml --limit webapp01 --diff
 - `ansible/nginx.yaml`: 当日回収した設定を追加するための入口
 - `ansible/db.yaml`: 当日回収した設定を追加するための入口
 - `ansible/all.yaml`: 確認済み playbook の一括実行用
+- `go/isuutil`: Go 実装へ必要なものだけ取り込むための持ち込み用ユーティリティ
 - `webapp/`: 競技開始後に回収するアプリケーション（開始前は未配置）
 
 監視基盤は別途構築する前提のため、このリポジトリでは管理しません。
