@@ -7,5 +7,5 @@ build: app
 test:
 	go test ./...
 
-app: *.go go.mod go.sum Makefile
+app: *.go isuutil/*.go go.mod go.sum Makefile
 	go build -trimpath -o app .

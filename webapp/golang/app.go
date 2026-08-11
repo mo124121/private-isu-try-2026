@@ -19,6 +19,7 @@ import (
 
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
+	"github.com/catatsuy/private-isu/webapp/golang/isuutil"
 	"github.com/go-chi/chi/v5"
 	mysql "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
@@ -267,6 +268,9 @@ func getTemplPath(filename string) string {
 func getInitialize(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	dbInitialize(ctx)
+	if err := isuutil.KickPproteinCollect(); err != nil {
+		log.Printf("pprotein collect was not started: %v", err)
+	}
 	w.WriteHeader(http.StatusOK)
 }
 

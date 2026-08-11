@@ -9,6 +9,7 @@
   loop:
     - "{{ webapp_deploy_dir }}"
     - "{{ webapp_deploy_dir }}/templates"
+    - "{{ webapp_deploy_dir }}/isuutil"
     - /home/isucon/private_isu/webapp/public
     - /home/isucon/private_isu/webapp/public/css
     - /home/isucon/private_isu/webapp/public/img
@@ -28,6 +29,15 @@
     - "{{ playbook_dir }}/../webapp/golang/app.go"
     - "{{ playbook_dir }}/../webapp/golang/go.mod"
     - "{{ playbook_dir }}/../webapp/golang/go.sum"
+
+- name: Synchronize Go utilities
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ webapp_deploy_dir }}/isuutil/{{ item | basename }}"
+    owner: isucon
+    group: isucon
+    mode: "0664"
+  loop: "{{ lookup('ansible.builtin.fileglob', playbook_dir ~ '/../webapp/golang/isuutil/*.go', wantlist=True) }}"
 
 - name: Synchronize Go setup script
   ansible.builtin.copy:
