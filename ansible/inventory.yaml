@@ -12,6 +12,10 @@ all:
     db_user_hosts: []
     webapp_deploy_dir: /home/isucon/private_isu/webapp/golang
     webapp_binary_name: app
+    benchmarker_workdir: /home/isucon/private_isu/benchmarker
+    benchmarker_bin: /home/isucon/private_isu/benchmarker/bin/benchmarker
+    benchmarker_userdata: /home/isucon/private_isu/benchmarker/userdata
+    benchmark_target_url: "http://{{ nginx_ip }}"
     ansible_user: ubuntu
   children:
     target:

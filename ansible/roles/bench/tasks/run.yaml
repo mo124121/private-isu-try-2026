@@ -1,34 +1,50 @@
-- name: Generate consistent log timestamp
-  set_fact:
-    log_timestamp: "{{ lookup('pipe', 'date +%Y%m%d_%H%M%S') }}"
+---
+- name: Create local benchmark log directory
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/../logs"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+  become: false
+  run_once: true
 
-- name: Generate log file name
-  set_fact:
-    log_file: "/tmp/output_{{ log_timestamp }}.log"
+- name: Generate benchmark timestamp
+  ansible.builtin.set_fact:
+    benchmark_timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
 
-- name: Run bench and save output to a timestamped log file
-  ansible.builtin.shell: |
-    ./bench -all-addresses {{ nginx_ip }} \
-    -target {{ nginx_ip }}:443 -tls \
-    -jia-service-url http://{{ bench_ip }}:4999 \
-      > {{ log_file }} 2>&1
-  args:
-    executable: /bin/bash
-    chdir: /home/isucon/bench/
-  vars:
-    # nginx_ip: "{{ nginx_ip }}"
-    bench_ip: "{{ internal_ips.B }}"
+- name: Set benchmark log path
+  ansible.builtin.set_fact:
+    benchmark_log: "/tmp/benchmarker_{{ benchmark_timestamp }}.log"
 
-- name: Fetch and display the last 20 lines of the log
-  ansible.builtin.shell: "tail -n 20 {{ log_file }}"
-  register: tail_output
+- name: Run benchmark
+  block:
+    - name: Execute benchmarker
+      ansible.builtin.shell: >-
+        {{ benchmarker_bin }}
+        -u {{ benchmarker_userdata }}
+        -t {{ benchmark_target_url }}
+        > {{ benchmark_log }} 2>&1
+      args:
+        executable: /bin/bash
+        chdir: "{{ benchmarker_workdir }}"
+      become_user: isucon
+      register: benchmark_result
+      changed_when: true
+  always:
+    - name: Fetch benchmark log
+      ansible.builtin.fetch:
+        src: "{{ benchmark_log }}"
+        dest: "{{ playbook_dir }}/../logs/"
+        flat: true
+      become: true
 
-- name: Show the last 20 lines of the log
-  debug:
-    msg: "{{ tail_output.stdout }}"
+    - name: Read benchmark log tail
+      ansible.builtin.command:
+        cmd: "tail -n 20 {{ benchmark_log }}"
+      register: benchmark_log_tail
+      changed_when: false
+      become: true
 
-- name: Fetch the log file to the local machine
-  fetch:
-    src: "{{ log_file }}"
-    dest: "../logs/"
-    flat: true
+    - name: Show benchmark log tail
+      ansible.builtin.debug:
+        msg: "{{ benchmark_log_tail.stdout }}"

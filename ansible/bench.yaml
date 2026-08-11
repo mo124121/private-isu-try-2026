@@ -1,18 +1,9 @@
-# 本番は使うことはないplaybook
-# 過去問解くときはこれで実行→結果を保存できる
-
-- name: A record
-  hosts: all
-  tasks:
-    - name: Import a record role
-      ansible.builtin.import_role:
-        name: bench
-        tasks_from: arecord
-
-- name: Bench
+---
+- name: Run benchmark from the benchmarker host
   hosts: benchmarker
+  become: true
   tasks:
-    - name: Import bench role
+    - name: Run benchmark and collect its log
       ansible.builtin.import_role:
         name: bench
         tasks_from: run
