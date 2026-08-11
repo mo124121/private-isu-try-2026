@@ -28,8 +28,8 @@ user		= mysql
 #
 # Instead of skip-networking the default is now to listen only on
 # localhost which is more compatible and is not less secure.
-bind-address		= 0.0.0.0
-mysqlx-bind-address	= 0.0.0.0
+bind-address		= 127.0.0.1
+mysqlx-bind-address	= 127.0.0.1
 #
 # * Fine Tuning
 #
@@ -62,9 +62,9 @@ myisam-recover-options  = BACKUP
 log_error = /var/log/mysql/error.log
 #
 # Here you can see queries with especially long duration
-slow_query_log		= 1
-slow_query_log_file	= /var/log/mysql/mysql-slow.log
-long_query_time = 0
+# slow_query_log		= 1
+# slow_query_log_file	= /var/log/mysql/mysql-slow.log
+# long_query_time = 2
 # log-queries-not-using-indexes
 #
 # The following can be used as easy to replay backup logs or for replication.
@@ -76,9 +76,3 @@ long_query_time = 0
 max_binlog_size   = 100M
 # binlog_do_db		= include_database_name
 # binlog_ignore_db	= include_database_name
-
-innodb_flush_log_at_trx_commit = 0 # 1に設定するとトランザクション単位でログを出力するが 2 を指定すると1秒間に1回ログを吐く。0だとログも1秒に1回。
-innodb_flush_method = O_DIRECT # データファイル、ログファイルの読み書き方式を指定する(実験する価値はある)
-disable-log-bin = 1
-innodb_doublewrite = 0
-innodb_log_writer_threads = off

@@ -9,6 +9,7 @@ all:
     nginx_ip: "{{ internal_ips.S1 }}"
     db_ip: "{{ internal_ips.S1 }}"
     main_web_ip: "{{ internal_ips.S1 }}"
+    db_user_hosts: []
     ansible_user: ubuntu
   children:
     target:

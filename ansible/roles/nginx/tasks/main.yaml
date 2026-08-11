@@ -1,16 +1,5 @@
-# - name: Deploy template # 内部IPを指定するためJinja templateで生成する用 
-#   become: true
-#   ansible.builtin.template:
-#     src: "{{ item }}"
-#     dest: "/{{ item }}"
-#     owner: root
-#     group: root
-#     mode: "0644"
-#   notify: restart_nginx
-#   with_items:
-#     - etc/nginx/sites-enabled/isupipe.conf.j2
-
-- name: Deploy file
+---
+- name: Deploy nginx configuration
   become: true
   ansible.builtin.copy:
     src: "{{ item }}"
@@ -18,7 +7,17 @@
     owner: root
     group: root
     mode: "0644"
-    backup: true
-  notify: restart_nginx
-  with_items:
+    backup: false
+  loop:
     - etc/nginx/nginx.conf
+    - etc/nginx/sites-available/isucon.conf
+  notify: restart_nginx
+- name: Enable target nginx site
+  become: true
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/isucon.conf
+    dest: /etc/nginx/sites-enabled/isucon.conf
+    state: link
+    owner: root
+    group: root
+  notify: restart_nginx
