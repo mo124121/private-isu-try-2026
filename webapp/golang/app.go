@@ -93,6 +93,12 @@ func dbInitialize(ctx context.Context) {
 	for _, sql := range sqls {
 		db.ExecContext(ctx, sql)
 	}
+
+	// コメント一覧の絞り込みと created_at 順の取得を同じインデックスで処理できるようにする。
+	// initialize はベンチマークごとに呼ばれるため、既存の場合はエラーにしない。
+	if err := isuutil.CreateIndexIfNotExists(db, "CREATE INDEX idx_comments_post_id_created_at ON comments (post_id, created_at)"); err != nil {
+		log.Printf("failed to create comments index: %v", err)
+	}
 }
 
 func tryLogin(ctx context.Context, accountName, password string) *User {
