@@ -1,0 +1,23 @@
+---
+- name: Create local artifact directory
+  ansible.builtin.file:
+    path: "{{ inventory_dir }}/.artifacts"
+    state: directory
+    mode: "0755"
+
+- name: Build web application
+  ansible.builtin.command:
+    argv:
+      - go
+      - build
+      - -trimpath
+      - -o
+      - "{{ inventory_dir }}/.artifacts/{{ webapp_binary_name }}"
+      - .
+    chdir: "{{ webapp_source_dir }}"
+  environment:
+    CGO_ENABLED: "0"
+    GOOS: linux
+    GOARCH: "{{ webapp_build_arch }}"
+  changed_when: true
+

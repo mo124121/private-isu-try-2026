@@ -2,6 +2,18 @@
 	"image": "mcr.microsoft.com/devcontainers/universal:2",
 	"runArgs": ["--device=/dev/net/tun"],
 	"features": {
+		"ghcr.io/hspaans/devcontainer-features/ansible-lint:1": {},
+		"ghcr.io/devcontainers-extra/features/ansible:2": {},
+		"ghcr.io/devcontainers-extra/features/tailscale:1": {},
 		"ghcr.io/tailscale/codespace/tailscale": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"golang.Go",
+				"mhutchie.git-graph",
+				"redhat.ansible"
+			]
+		}
 	}
 }

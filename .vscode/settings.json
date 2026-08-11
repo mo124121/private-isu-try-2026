@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "*.yaml": "ansible"
+  },
+  "files.insertFinalNewline": true,
+  "editor.formatOnSave": true
+}

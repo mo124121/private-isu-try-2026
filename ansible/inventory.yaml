@@ -1,0 +1,34 @@
+all:
+  vars:
+    # 当日、採用実装と配布先を確認してから埋める。
+    ansible_user: isucon
+    webapp_source_dir: "{{ inventory_dir }}/../webapp/go"
+    webapp_deploy_dir: /home/isucon/webapp/go
+    webapp_binary_name: app
+    webapp_service_name: CHANGE_ME.service
+    webapp_build_arch: amd64
+
+    # サーバー間通信や nginx upstream に利用する値。
+    internal_ips:
+      S1: XXX.XXX.XXX.XXX
+      S2: XXX.XXX.XXX.XXX
+      S3: XXX.XXX.XXX.XXX
+    nginx_ip: "{{ internal_ips.S1 }}"
+    db_ip: "{{ internal_ips.S1 }}"
+    main_web_ip: "{{ internal_ips.S1 }}"
+
+  children:
+    target:
+      children:
+        nginx:
+          hosts:
+            nginx01:
+              ansible_host: isucon-server1
+        webapp:
+          hosts:
+            webapp01:
+              ansible_host: isucon-server1
+        db:
+          hosts:
+            db01:
+              ansible_host: isucon-server1

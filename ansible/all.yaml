@@ -1,0 +1,5 @@
+---
+# 当日の構成確認後、必要な playbook をここへ追加する。
+- name: Web
+  ansible.builtin.import_playbook: web.yaml
+

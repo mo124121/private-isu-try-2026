@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "redhat.ansible",
+    "mhutchie.git-graph",
+    "golang.go"
+  ]
+}

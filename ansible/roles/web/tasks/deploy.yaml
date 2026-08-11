@@ -1,0 +1,44 @@
+---
+- name: Check target service
+  ansible.builtin.service_facts:
+
+- name: Ensure target service exists
+  ansible.builtin.assert:
+    that:
+      - webapp_service_name in ansible_facts.services
+    fail_msg: "systemd service {{ webapp_service_name }} が対象ホストにありません。"
+
+- name: Ensure deployment directory exists
+  ansible.builtin.file:
+    path: "{{ webapp_deploy_dir }}"
+    state: directory
+    owner: isucon
+    group: isucon
+    mode: "0755"
+
+- name: Upload new binary
+  ansible.builtin.copy:
+    src: "{{ inventory_dir }}/.artifacts/{{ webapp_binary_name }}"
+    dest: "{{ webapp_deploy_dir }}/.{{ webapp_binary_name }}.new"
+    owner: isucon
+    group: isucon
+    mode: "0755"
+
+- name: Replace binary atomically
+  ansible.builtin.command:
+    argv:
+      - mv
+      - "{{ webapp_deploy_dir }}/.{{ webapp_binary_name }}.new"
+      - "{{ webapp_deploy_dir }}/{{ webapp_binary_name }}"
+  notify: Restart webapp
+  changed_when: true
+
+- name: Deploy templates when present
+  ansible.builtin.copy:
+    src: "{{ webapp_source_dir }}/templates/"
+    dest: "{{ webapp_deploy_dir }}/templates/"
+    owner: isucon
+    group: isucon
+    mode: preserve
+  notify: Restart webapp
+
