@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"os/exec"
@@ -871,6 +872,7 @@ func main() {
 	r.Get("/admin/banned", getAdminBanned)
 	r.Post("/admin/banned", postAdminBanned)
 	r.Get(`/@{accountName:[0-9a-zA-Z_]+}`, getAccountName)
+	r.Handle("/debug/pprof/*", http.DefaultServeMux)
 	r.Mount("/", http.FileServer(http.Dir("../public")))
 
 	log.Fatal(http.ListenAndServe(":8080", r))
