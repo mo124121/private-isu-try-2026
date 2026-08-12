@@ -15,6 +15,7 @@ require (
 	github.com/gorilla/sessions v1.4.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/labstack/echo/v4 v4.15.4
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/rs/xid v1.6.0
 	github.com/sony/sonyflake v1.3.0
 	github.com/uptrace/opentelemetry-go-extra/otelsql v0.3.2

@@ -27,6 +27,7 @@
     - "{{ playbook_dir }}/../webapp/golang/Dockerfile"
     - "{{ playbook_dir }}/../webapp/golang/Makefile"
     - "{{ playbook_dir }}/../webapp/golang/app.go"
+    - "{{ playbook_dir }}/../webapp/golang/post_loader.go"
     - "{{ playbook_dir }}/../webapp/golang/go.mod"
     - "{{ playbook_dir }}/../webapp/golang/go.sum"
 
