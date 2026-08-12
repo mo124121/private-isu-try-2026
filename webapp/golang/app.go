@@ -28,9 +28,10 @@ import (
 )
 
 var (
-	db        *sqlx.DB
-	store     *gsm.MemcacheStore
-	templates struct {
+	db         *sqlx.DB
+	store      *gsm.MemcacheStore
+	indexCache indexPostsCache
+	templates  struct {
 		index    *template.Template
 		login    *template.Template
 		register *template.Template
@@ -103,6 +104,7 @@ func dbInitialize(ctx context.Context) {
 	for _, sql := range sqls {
 		db.ExecContext(ctx, sql)
 	}
+	indexCache.invalidate()
 
 	// コメント一覧の絞り込みと created_at 順の取得を同じインデックスで処理できるようにする。
 	// initialize はベンチマークごとに呼ばれるため、既存の場合はエラーにしない。
@@ -400,14 +402,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	me := getSessionUser(r)
 
-	results := []Post{}
-
-	err := db.SelectContext(ctx, &results, `
-		SELECT p.id, p.user_id, p.body, p.mime, p.created_at
-		FROM posts AS p
-		INNER JOIN users AS u ON u.id = p.user_id AND u.del_flg = 0
-		ORDER BY p.created_at DESC
-		LIMIT ?`, postsPerPage)
+	results, err := indexCache.load(ctx, db)
 	if err != nil {
 		log.Print(err)
 		return
@@ -680,6 +675,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	indexCache.invalidate()
 
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
 }
@@ -804,6 +800,7 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 	for _, id := range r.Form["uid[]"] {
 		db.ExecContext(ctx, query, 1, id)
 	}
+	indexCache.invalidate()
 
 	http.Redirect(w, r, "/admin/banned", http.StatusFound)
 }
