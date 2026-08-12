@@ -34,6 +34,7 @@ var (
 	userCache         userCacheStore
 	postCache         postCacheStore
 	commentCountCache commentCountCacheStore
+	loginCache        loginCacheStore
 	templates         struct {
 		index    *template.Template
 		login    *template.Template
@@ -111,6 +112,7 @@ func dbInitialize(ctx context.Context) {
 	userCache.invalidate()
 	postCache.invalidate()
 	commentCountCache.invalidate()
+	loginCache.invalidate()
 
 	// コメント一覧の絞り込みと created_at 順の取得を同じインデックスで処理できるようにする。
 	// initialize はベンチマークごとに呼ばれるため、既存の場合はエラーにしない。
@@ -126,14 +128,16 @@ func dbInitialize(ctx context.Context) {
 }
 
 func tryLogin(ctx context.Context, accountName, password string) *User {
-	u := User{}
-	err := db.GetContext(ctx, &u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
+	u, err := loginCache.load(ctx, db, accountName)
 	if err != nil {
+		return nil
+	}
+	if u == nil {
 		return nil
 	}
 
 	if calculatePasshash(ctx, u.AccountName, password) == u.Passhash {
-		return &u
+		return u
 	} else {
 		return nil
 	}
@@ -394,6 +398,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
+	loginCache.invalidate(accountName)
 	session.Values["user_id"] = uid
 	session.Values["csrf_token"] = secureRandomStr(16)
 	session.Save(r, w)
@@ -818,6 +823,7 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	indexCache.invalidate()
+	loginCache.invalidate()
 
 	http.Redirect(w, r, "/admin/banned", http.StatusFound)
 }
