@@ -36,6 +36,7 @@ const (
 	postsPerPage  = 20
 	ISO8601Format = "2006-01-02T15:04:05-07:00"
 	UploadLimit   = 10 * 1024 * 1024 // 10mb
+	imageDir      = "../public/image"
 )
 
 type User struct {
@@ -228,8 +229,22 @@ func getTemplPath(filename string) string {
 func getInitialize(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	dbInitialize(ctx)
+	if err := cleanupGeneratedImages(imageDir, 10000); err != nil {
+		log.Printf("failed to clean up images: %v", err)
+		http.Error(w, "failed to clean up images", http.StatusInternalServerError)
+		return
+	}
 	if err := isuutil.KickPproteinCollect(); err != nil {
 		log.Printf("pprotein collect was not started: %v", err)
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func getExportImages(w http.ResponseWriter, r *http.Request) {
+	if err := exportImages(r.Context(), db, imageDir); err != nil {
+		log.Printf("failed to export images: %v", err)
+		http.Error(w, "failed to export images", http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
@@ -654,6 +669,13 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
+	if err := saveImageFile(imageDir, pid, mime, filedata); err != nil {
+		log.Printf("failed to save image for post %d: %v", pid, err)
+		if _, deleteErr := db.ExecContext(ctx, "DELETE FROM `posts` WHERE `id` = ?", pid); deleteErr != nil {
+			log.Printf("failed to rollback post %d after image save error: %v", pid, deleteErr)
+		}
+		return
+	}
 
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
 }
@@ -828,6 +850,7 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Get("/initialize", getInitialize)
+	r.Get("/_internal/export-images", getExportImages)
 	r.Get("/login", getLogin)
 	r.Post("/login", postLogin)
 	r.Get("/register", getRegister)

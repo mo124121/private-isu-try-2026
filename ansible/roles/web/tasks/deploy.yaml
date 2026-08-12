@@ -35,3 +35,21 @@
   ansible.builtin.command:
     cmd: curl --fail --silent --show-error http://127.0.0.1:8080/
   changed_when: false
+
+- name: Check exported image files
+  ansible.builtin.find:
+    paths: /home/isucon/private_isu/webapp/public/image
+    patterns:
+      - "*.jpg"
+      - "*.png"
+      - "*.gif"
+    file_type: file
+  register: exported_image_files
+  become: true
+  changed_when: false
+
+- name: Export database images for nginx static delivery
+  ansible.builtin.command:
+    cmd: curl --fail --silent --show-error --max-time 300 http://127.0.0.1:8080/_internal/export-images
+  when: exported_image_files.matched | int == 0
+  changed_when: true

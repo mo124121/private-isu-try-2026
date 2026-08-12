@@ -11,6 +11,7 @@
     - "{{ webapp_deploy_dir }}/templates"
     - "{{ webapp_deploy_dir }}/isuutil"
     - /home/isucon/private_isu/webapp/public
+    - /home/isucon/private_isu/webapp/public/image
     - /home/isucon/private_isu/webapp/public/css
     - /home/isucon/private_isu/webapp/public/img
     - /home/isucon/private_isu/webapp/public/js
@@ -27,6 +28,7 @@
     - "{{ playbook_dir }}/../webapp/golang/Dockerfile"
     - "{{ playbook_dir }}/../webapp/golang/Makefile"
     - "{{ playbook_dir }}/../webapp/golang/app.go"
+    - "{{ playbook_dir }}/../webapp/golang/image_files.go"
     - "{{ playbook_dir }}/../webapp/golang/post_loader.go"
     - "{{ playbook_dir }}/../webapp/golang/go.mod"
     - "{{ playbook_dir }}/../webapp/golang/go.sum"
