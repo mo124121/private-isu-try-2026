@@ -153,6 +153,40 @@ func TestLoadUsersWithSQLite(t *testing.T) {
 	}
 }
 
+func TestUserCacheInvalidationWithSQLite(t *testing.T) {
+	db := newMakePostsTestDB(t)
+	cache := userCacheStore{}
+	ctx := context.Background()
+
+	users, err := cache.load(ctx, db, []int{1})
+	if err != nil {
+		t.Fatalf("load users: %v", err)
+	}
+	if users[1].AccountName != "alice" {
+		t.Fatalf("expected alice, got %q", users[1].AccountName)
+	}
+
+	if _, err := db.Exec("UPDATE users SET account_name = ? WHERE id = ?", "alice-updated", 1); err != nil {
+		t.Fatalf("update user fixture: %v", err)
+	}
+	users, err = cache.load(ctx, db, []int{1})
+	if err != nil {
+		t.Fatalf("load cached user: %v", err)
+	}
+	if users[1].AccountName != "alice" {
+		t.Fatalf("expected cached alice before invalidation, got %q", users[1].AccountName)
+	}
+
+	cache.invalidate(1)
+	users, err = cache.load(ctx, db, []int{1})
+	if err != nil {
+		t.Fatalf("load invalidated user: %v", err)
+	}
+	if users[1].AccountName != "alice-updated" {
+		t.Fatalf("expected updated user after invalidation, got %q", users[1].AccountName)
+	}
+}
+
 func TestLoadPostsWithSQLite(t *testing.T) {
 	db := newMakePostsTestDB(t)
 	ctx := context.Background()

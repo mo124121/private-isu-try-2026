@@ -31,6 +31,7 @@ var (
 	db         *sqlx.DB
 	store      *gsm.MemcacheStore
 	indexCache indexPostsCache
+	userCache  userCacheStore
 	templates  struct {
 		index    *template.Template
 		login    *template.Template
@@ -105,6 +106,7 @@ func dbInitialize(ctx context.Context) {
 		db.ExecContext(ctx, sql)
 	}
 	indexCache.invalidate()
+	userCache.invalidate()
 
 	// コメント一覧の絞り込みと created_at 順の取得を同じインデックスで処理できるようにする。
 	// initialize はベンチマークごとに呼ばれるため、既存の場合はエラーにしない。
@@ -798,7 +800,12 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, id := range r.Form["uid[]"] {
-		db.ExecContext(ctx, query, 1, id)
+		if _, err := db.ExecContext(ctx, query, 1, id); err == nil {
+			uid, parseErr := strconv.Atoi(id)
+			if parseErr == nil {
+				userCache.invalidate(uid)
+			}
+		}
 	}
 	indexCache.invalidate()
 

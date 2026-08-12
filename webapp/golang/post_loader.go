@@ -20,7 +20,7 @@ func loadPosts(ctx context.Context, conn *sqlx.DB, results []Post, csrfToken str
 		ownerIDs = append(ownerIDs, post.UserID)
 	}
 
-	ownerUsers, err := loadUsers(ctx, conn, ownerIDs)
+	ownerUsers, err := userCache.load(ctx, conn, ownerIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func loadPosts(ctx context.Context, conn *sqlx.DB, results []Post, csrfToken str
 			commentUserIDs = append(commentUserIDs, comment.UserID)
 		}
 	}
-	commentUsers, err := loadUsers(ctx, conn, commentUserIDs)
+	commentUsers, err := userCache.load(ctx, conn, commentUserIDs)
 	if err != nil {
 		return nil, err
 	}
