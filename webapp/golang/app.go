@@ -177,14 +177,21 @@ func getSessionUser(r *http.Request) User {
 		return User{}
 	}
 
-	u := User{}
-
-	err := db.GetContext(ctx, &u, "SELECT * FROM `users` WHERE `id` = ?", uid)
-	if err != nil {
+	var userID int
+	switch value := uid.(type) {
+	case int:
+		userID = value
+	case int64:
+		userID = int(value)
+	default:
 		return User{}
 	}
 
-	return u
+	users, err := userCache.load(ctx, db, []int{userID})
+	if err != nil {
+		return User{}
+	}
+	return users[userID]
 }
 
 func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
