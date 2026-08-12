@@ -120,6 +120,9 @@ func dbInitialize(ctx context.Context) {
 	if err := isuutil.CreateIndexIfNotExists(db, "CREATE INDEX idx_posts_created_at ON posts (created_at DESC)"); err != nil {
 		log.Printf("failed to create posts created_at index: %v", err)
 	}
+	if err := isuutil.CreateIndexIfNotExists(db, "CREATE INDEX idx_comments_user_id ON comments (user_id)"); err != nil {
+		log.Printf("failed to create comments user_id index: %v", err)
+	}
 }
 
 func tryLogin(ctx context.Context, accountName, password string) *User {
