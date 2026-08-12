@@ -32,6 +32,7 @@ var (
 	store      *gsm.MemcacheStore
 	indexCache indexPostsCache
 	userCache  userCacheStore
+	postCache  postCacheStore
 	templates  struct {
 		index    *template.Template
 		login    *template.Template
@@ -107,6 +108,7 @@ func dbInitialize(ctx context.Context) {
 	}
 	indexCache.invalidate()
 	userCache.invalidate()
+	postCache.invalidate()
 
 	// コメント一覧の絞り込みと created_at 順の取得を同じインデックスで処理できるようにする。
 	// initialize はベンチマークごとに呼ばれるため、既存の場合はエラーにしない。
@@ -566,8 +568,7 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
-	err = db.SelectContext(ctx, &results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `id` = ?", pid)
+	results, err := postCache.load(ctx, db, pid)
 	if err != nil {
 		log.Print(err)
 		return

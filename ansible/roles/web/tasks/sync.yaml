@@ -30,6 +30,7 @@
     - "{{ playbook_dir }}/../webapp/golang/app.go"
     - "{{ playbook_dir }}/../webapp/golang/index_cache.go"
     - "{{ playbook_dir }}/../webapp/golang/user_cache.go"
+    - "{{ playbook_dir }}/../webapp/golang/post_cache.go"
     - "{{ playbook_dir }}/../webapp/golang/image_files.go"
     - "{{ playbook_dir }}/../webapp/golang/post_loader.go"
     - "{{ playbook_dir }}/../webapp/golang/go.mod"
