@@ -28,8 +28,9 @@ import (
 )
 
 var (
-	db    *sqlx.DB
-	store *gsm.MemcacheStore
+	db            *sqlx.DB
+	store         *gsm.MemcacheStore
+	indexTemplate *template.Template
 )
 
 const (
@@ -226,6 +227,19 @@ func getTemplPath(filename string) string {
 	return path.Join("templates", filename)
 }
 
+func loadIndexTemplate() *template.Template {
+	fmap := template.FuncMap{
+		"imageURL": imageURL,
+	}
+
+	return template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
+		getTemplPath("layout.html"),
+		getTemplPath("index.html"),
+		getTemplPath("posts.html"),
+		getTemplPath("post.html"),
+	))
+}
+
 func getInitialize(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	dbInitialize(ctx)
@@ -390,21 +404,14 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmap := template.FuncMap{
-		"imageURL": imageURL,
-	}
-
-	template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("index.html"),
-		getTemplPath("posts.html"),
-		getTemplPath("post.html"),
-	)).Execute(w, struct {
+	if err := indexTemplate.Execute(w, struct {
 		Posts     []Post
 		Me        User
 		CSRFToken string
 		Flash     string
-	}{posts, me, getCSRFToken(r), getFlash(w, r, "notice")})
+	}{posts, me, getCSRFToken(r), getFlash(w, r, "notice")}); err != nil {
+		log.Print(err)
+	}
 }
 
 func getAccountName(w http.ResponseWriter, r *http.Request) {
@@ -846,6 +853,8 @@ func main() {
 		log.Fatalf("Failed to connect to DB: %s.", err.Error())
 	}
 	defer db.Close()
+
+	indexTemplate = loadIndexTemplate()
 
 	r := chi.NewRouter()
 
