@@ -79,29 +79,11 @@ func loadPosts(ctx context.Context, conn *sqlx.DB, results []Post, csrfToken str
 }
 
 func loadCommentCounts(ctx context.Context, conn *sqlx.DB, postIDs []int) (map[int]int, error) {
-	counts := make(map[int]int)
 	postIDs = uniqueIDs(postIDs)
 	if len(postIDs) == 0 {
-		return counts, nil
+		return map[int]int{}, nil
 	}
-
-	query, args, err := sqlx.In(`
-		SELECT post_id, COUNT(*) AS count
-		FROM comments
-		WHERE post_id IN (?)
-		GROUP BY post_id`, postIDs)
-	if err != nil {
-		return nil, fmt.Errorf("build comment count query: %w", err)
-	}
-
-	var rows []commentCountRow
-	if err := conn.SelectContext(ctx, &rows, query, args...); err != nil {
-		return nil, fmt.Errorf("load comment counts: %w", err)
-	}
-	for _, row := range rows {
-		counts[row.PostID] = row.Count
-	}
-	return counts, nil
+	return commentCountCache.load(ctx, conn, postIDs)
 }
 
 func loadComments(ctx context.Context, conn *sqlx.DB, postIDs []int, allComments bool) (map[int][]Comment, error) {

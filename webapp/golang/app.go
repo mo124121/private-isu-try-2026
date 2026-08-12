@@ -28,12 +28,13 @@ import (
 )
 
 var (
-	db         *sqlx.DB
-	store      *gsm.MemcacheStore
-	indexCache indexPostsCache
-	userCache  userCacheStore
-	postCache  postCacheStore
-	templates  struct {
+	db                *sqlx.DB
+	store             *gsm.MemcacheStore
+	indexCache        indexPostsCache
+	userCache         userCacheStore
+	postCache         postCacheStore
+	commentCountCache commentCountCacheStore
+	templates         struct {
 		index    *template.Template
 		login    *template.Template
 		register *template.Template
@@ -109,6 +110,7 @@ func dbInitialize(ctx context.Context) {
 	indexCache.invalidate()
 	userCache.invalidate()
 	postCache.invalidate()
+	commentCountCache.invalidate()
 
 	// コメント一覧の絞り込みと created_at 順の取得を同じインデックスで処理できるようにする。
 	// initialize はベンチマークごとに呼ばれるため、既存の場合はエラーにしない。
@@ -744,6 +746,7 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
+	commentCountCache.invalidate(postID)
 
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
 }

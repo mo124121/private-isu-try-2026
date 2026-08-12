@@ -118,6 +118,40 @@ func TestLoadCommentCountsWithSQLite(t *testing.T) {
 	}
 }
 
+func TestCommentCountCacheInvalidationWithSQLite(t *testing.T) {
+	db := newMakePostsTestDB(t)
+	cache := commentCountCacheStore{}
+	ctx := context.Background()
+
+	counts, err := cache.load(ctx, db, []int{1, 2})
+	if err != nil {
+		t.Fatalf("load comment counts: %v", err)
+	}
+	if counts[1] != 4 || counts[2] != 0 {
+		t.Fatalf("unexpected initial counts: %#v", counts)
+	}
+
+	if _, err := db.Exec("INSERT INTO comments (id, post_id, user_id, comment, created_at) VALUES (?, ?, ?, ?, ?)", 5, 2, 1, "new", time.Now()); err != nil {
+		t.Fatalf("insert comment fixture: %v", err)
+	}
+	counts, err = cache.load(ctx, db, []int{2})
+	if err != nil {
+		t.Fatalf("load cached count: %v", err)
+	}
+	if counts[2] != 0 {
+		t.Fatalf("expected cached zero count, got %d", counts[2])
+	}
+
+	cache.invalidate(2)
+	counts, err = cache.load(ctx, db, []int{2})
+	if err != nil {
+		t.Fatalf("load invalidated count: %v", err)
+	}
+	if counts[2] != 1 {
+		t.Fatalf("expected count after invalidation, got %d", counts[2])
+	}
+}
+
 func TestLoadCommentsWithSQLite(t *testing.T) {
 	db := newMakePostsTestDB(t)
 
