@@ -87,46 +87,7 @@ func loadCommentCounts(ctx context.Context, conn *sqlx.DB, postIDs []int) (map[i
 }
 
 func loadComments(ctx context.Context, conn *sqlx.DB, postIDs []int, allComments bool) (map[int][]Comment, error) {
-	commentsByPostID := make(map[int][]Comment)
-	postIDs = uniqueIDs(postIDs)
-	if len(postIDs) == 0 {
-		return commentsByPostID, nil
-	}
-
-	query := `
-		SELECT id, post_id, user_id, comment, created_at
-		FROM comments
-		WHERE post_id IN (?)
-		ORDER BY post_id ASC, created_at ASC, id ASC`
-	if !allComments {
-		query = `
-			SELECT id, post_id, user_id, comment, created_at
-			FROM (
-				SELECT id, post_id, user_id, comment, created_at,
-					ROW_NUMBER() OVER (
-						PARTITION BY post_id
-						ORDER BY created_at DESC, id DESC
-					) AS row_num
-				FROM comments
-				WHERE post_id IN (?)
-			) AS ranked_comments
-			WHERE row_num <= 3
-			ORDER BY post_id ASC, created_at ASC, id ASC`
-	}
-
-	query, args, err := sqlx.In(query, postIDs)
-	if err != nil {
-		return nil, fmt.Errorf("build comments query: %w", err)
-	}
-
-	var rows []Comment
-	if err := conn.SelectContext(ctx, &rows, query, args...); err != nil {
-		return nil, fmt.Errorf("load comments: %w", err)
-	}
-	for _, comment := range rows {
-		commentsByPostID[comment.PostID] = append(commentsByPostID[comment.PostID], comment)
-	}
-	return commentsByPostID, nil
+	return commentsCache.load(ctx, conn, postIDs, allComments)
 }
 
 func loadUsers(ctx context.Context, conn *sqlx.DB, userIDs []int) (map[int]User, error) {
