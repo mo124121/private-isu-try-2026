@@ -37,6 +37,7 @@ var (
 	commentCountCache     commentCountCacheStore
 	userCommentCountCache userCommentCountCacheStore
 	loginCache            loginCacheStore
+	profileCache          accountProfileCache
 	templates             struct {
 		index    *template.Template
 		login    *template.Template
@@ -116,6 +117,7 @@ func dbInitialize(ctx context.Context) {
 	commentCountCache.invalidate()
 	userCommentCountCache.invalidate()
 	loginCache.invalidate()
+	profileCache.invalidateAll()
 
 	// コメント一覧の絞り込みと created_at 順の取得を同じインデックスで処理できるようにする。
 	// initialize はベンチマークごとに呼ばれるため、既存の場合はエラーにしない。
@@ -442,9 +444,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 func getAccountName(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	accountName := r.PathValue("accountName")
-	user := User{}
-
-	err := db.GetContext(ctx, &user, "SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0", accountName)
+	user, err := profileCache.loadUser(ctx, db, accountName)
 	if err != nil {
 		log.Print(err)
 		return
@@ -455,9 +455,7 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
-
-	err = db.SelectContext(ctx, &results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC", user.ID)
+	results, err := profileCache.loadPosts(ctx, db, user.ID)
 	if err != nil {
 		log.Print(err)
 		return
@@ -689,6 +687,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	indexCache.invalidate()
+	profileCache.invalidatePosts(me.ID)
 
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
 }
@@ -790,6 +789,7 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 			uid, parseErr := strconv.Atoi(id)
 			if parseErr == nil {
 				userCache.invalidate(uid)
+				profileCache.invalidateUser(uid)
 			}
 		}
 	}
