@@ -29,14 +29,15 @@ import (
 )
 
 var (
-	db                *sqlx.DB
-	store             *gsm.MemcacheStore
-	indexCache        indexPostsCache
-	userCache         userCacheStore
-	postCache         postCacheStore
-	commentCountCache commentCountCacheStore
-	loginCache        loginCacheStore
-	templates         struct {
+	db                    *sqlx.DB
+	store                 *gsm.MemcacheStore
+	indexCache            indexPostsCache
+	userCache             userCacheStore
+	postCache             postCacheStore
+	commentCountCache     commentCountCacheStore
+	userCommentCountCache userCommentCountCacheStore
+	loginCache            loginCacheStore
+	templates             struct {
 		index    *template.Template
 		login    *template.Template
 		register *template.Template
@@ -113,6 +114,7 @@ func dbInitialize(ctx context.Context) {
 	userCache.invalidate()
 	postCache.invalidate()
 	commentCountCache.invalidate()
+	userCommentCountCache.invalidate()
 	loginCache.invalidate()
 
 	// コメント一覧の絞り込みと created_at 順の取得を同じインデックスで処理できるようにする。
@@ -467,8 +469,7 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	commentCount := 0
-	err = db.GetContext(ctx, &commentCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?", user.ID)
+	commentCount, err := userCommentCountCache.load(ctx, db, user.ID)
 	if err != nil {
 		log.Print(err)
 		return
@@ -726,6 +727,7 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	commentCountCache.invalidate(postID)
+	userCommentCountCache.invalidate(me.ID)
 
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
 }
