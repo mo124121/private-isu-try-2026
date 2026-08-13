@@ -17,6 +17,13 @@ const (
 		WHERE p.created_at <= ?
 		ORDER BY p.created_at DESC
 		LIMIT ?`
+	postsPageMySQLQuery = `
+		SELECT p.id, p.user_id, p.body, p.mime, p.created_at
+		FROM posts AS p FORCE INDEX (idx_posts_created_at)
+		INNER JOIN users AS u ON u.id = p.user_id AND u.del_flg = 0
+		WHERE p.created_at <= ?
+		ORDER BY p.created_at DESC
+		LIMIT ?`
 )
 
 // postsPageCacheStore caches the DB portion of /posts for each pagination cursor.
@@ -44,7 +51,11 @@ func (c *postsPageCacheStore) load(ctx context.Context, conn *sqlx.DB, maxCreate
 	}
 
 	posts := []Post{}
-	if err := conn.SelectContext(ctx, &posts, postsPageQuery, maxCreatedAt, postsPerPage); err != nil {
+	query := postsPageQuery
+	if conn.DriverName() == "mysql" {
+		query = postsPageMySQLQuery
+	}
+	if err := conn.SelectContext(ctx, &posts, query, maxCreatedAt, postsPerPage); err != nil {
 		return nil, fmt.Errorf("load posts page at %s: %w", maxCreatedAt, err)
 	}
 	if len(c.order) >= postsPageCacheLimit {

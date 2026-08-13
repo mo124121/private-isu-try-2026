@@ -137,6 +137,9 @@ func dbInitialize(ctx context.Context) {
 	if err := isuutil.CreateIndexIfNotExists(db, "CREATE INDEX idx_posts_created_at ON posts (created_at DESC)"); err != nil {
 		log.Printf("failed to create posts created_at index: %v", err)
 	}
+	if err := isuutil.CreateIndexIfNotExists(db, "CREATE INDEX idx_posts_user_id_created_at ON posts (user_id, created_at DESC)"); err != nil {
+		log.Printf("failed to create posts user_id/created_at index: %v", err)
+	}
 	if err := isuutil.CreateIndexIfNotExists(db, "CREATE INDEX idx_comments_user_id ON comments (user_id)"); err != nil {
 		log.Printf("failed to create comments user_id index: %v", err)
 	}
