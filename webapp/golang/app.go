@@ -436,18 +436,11 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 	postsHTML, ok := indexPostsHTMLCacheStore.load()
 	if !ok {
-		posts, err := makePosts(ctx, results, indexCSRFPlaceholder, false)
+		postsHTML, err = renderPostListHTML(ctx, results, indexCSRFPlaceholder, false)
 		if err != nil {
 			log.Print(err)
 			return
 		}
-
-		var buf bytes.Buffer
-		if err := templates.posts.Execute(&buf, posts); err != nil {
-			log.Print(err)
-			return
-		}
-		postsHTML = template.HTML(buf.String())
 		indexPostsHTMLCacheStore.store(postsHTML)
 	}
 	postsHTML = template.HTML(strings.ReplaceAll(string(postsHTML), indexCSRFPlaceholder, template.HTMLEscapeString(getCSRFToken(r))))
@@ -460,6 +453,50 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 	}{postsHTML, me, getCSRFToken(r), getFlash(w, r, "notice")}); err != nil {
 		log.Print(err)
 	}
+}
+
+// renderPostListHTML renders only posts that are not already present in the
+// per-post cache. The list cache is invalidated when any visible post data
+// changes, but most posts remain unchanged and can reuse their fragments.
+func renderPostListHTML(ctx context.Context, results []Post, csrfToken string, allComments bool) (template.HTML, error) {
+	postsHTML := make([]template.HTML, len(results))
+	missingResults := make([]Post, 0, len(results))
+	missingIndexes := make(map[int][]int)
+	for i, result := range results {
+		if html, ok := postHTMLCacheStore.load(result.ID, allComments); ok {
+			postsHTML[i] = html
+			continue
+		}
+		missingResults = append(missingResults, result)
+		missingIndexes[result.ID] = append(missingIndexes[result.ID], i)
+	}
+
+	if len(missingResults) > 0 {
+		posts, err := makePosts(ctx, missingResults, csrfToken, allComments)
+		if err != nil {
+			return "", err
+		}
+		for _, post := range posts {
+			var buf bytes.Buffer
+			if err := templates.post.Execute(&buf, post); err != nil {
+				return "", err
+			}
+			html := template.HTML(buf.String())
+			postHTMLCacheStore.store(post.ID, allComments, html)
+			for _, i := range missingIndexes[post.ID] {
+				postsHTML[i] = html
+			}
+		}
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString("<div class=\"isu-posts\">\n")
+	for _, html := range postsHTML {
+		buf.WriteByte('\n')
+		buf.WriteString(string(html))
+	}
+	buf.WriteString("\n</div>")
+	return template.HTML(buf.String()), nil
 }
 
 func getAccountName(w http.ResponseWriter, r *http.Request) {
