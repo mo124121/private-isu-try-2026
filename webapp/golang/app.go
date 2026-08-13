@@ -519,11 +519,12 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, err := makePosts(ctx, results, getCSRFToken(r), false)
+	postsHTML, err := renderPostListHTML(ctx, results, indexCSRFPlaceholder, false)
 	if err != nil {
 		log.Print(err)
 		return
 	}
+	postsHTML = template.HTML(strings.ReplaceAll(string(postsHTML), indexCSRFPlaceholder, template.HTMLEscapeString(getCSRFToken(r))))
 
 	commentCount, err := userCommentCountCache.load(ctx, db, user.ID)
 	if err != nil {
@@ -550,13 +551,13 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
 
 	if err := templates.user.Execute(w, struct {
-		Posts          []Post
+		PostsHTML      template.HTML
 		User           User
 		PostCount      int
 		CommentCount   int
 		CommentedCount int
 		Me             User
-	}{posts, user, postCount, commentCount, commentedCount, me}); err != nil {
+	}{postsHTML, user, postCount, commentCount, commentedCount, me}); err != nil {
 		log.Print(err)
 	}
 }
