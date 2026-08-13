@@ -652,31 +652,41 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results, err := postCache.load(ctx, db, pid)
-	if err != nil {
-		log.Print(err)
-		return
-	}
+	postHTML, ok := postHTMLCacheStore.load(pid, true)
+	if !ok {
+		results, err := postCache.load(ctx, db, pid)
+		if err != nil {
+			log.Print(err)
+			return
+		}
 
-	posts, err := makePosts(ctx, results, getCSRFToken(r), true)
-	if err != nil {
-		log.Print(err)
-		return
-	}
+		posts, err := makePosts(ctx, results, indexCSRFPlaceholder, true)
+		if err != nil {
+			log.Print(err)
+			return
+		}
 
-	if len(posts) == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
+		if len(posts) == 0 {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 
-	p := posts[0]
+		var buf bytes.Buffer
+		if err := templates.post.Execute(&buf, posts[0]); err != nil {
+			log.Print(err)
+			return
+		}
+		postHTML = template.HTML(buf.String())
+		postHTMLCacheStore.store(pid, true, postHTML)
+	}
+	postHTML = template.HTML(strings.ReplaceAll(string(postHTML), indexCSRFPlaceholder, template.HTMLEscapeString(getCSRFToken(r))))
 
 	me := getSessionUser(r)
 
 	if err := templates.postID.Execute(w, struct {
-		Post Post
-		Me   User
-	}{p, me}); err != nil {
+		PostHTML template.HTML
+		Me       User
+	}{postHTML, me}); err != nil {
 		log.Print(err)
 	}
 }
