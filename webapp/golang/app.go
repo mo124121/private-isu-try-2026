@@ -534,6 +534,60 @@ func renderIndexPage(w io.Writer, postsHTML template.HTML, me User, csrfToken, f
 	return err
 }
 
+// renderPostIDPage writes the fixed post detail shell directly. The post
+// fragment is already cached, so executing layout.html for every request only
+// adds template reflection and traversal overhead.
+func renderPostIDPage(w io.Writer, postHTML template.HTML, me User) error {
+	var buf bytes.Buffer
+	buf.WriteString(`<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Iscogram</title>
+    <link href="/css/style.css" media="screen" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="isu-title">
+          <h1><a href="/">Iscogram</a></h1>
+        </div>
+        <div class="isu-header-menu">
+`)
+	if me.ID == 0 {
+		buf.WriteString(`          <div><a href="/login">ログイン</a></div>
+`)
+	} else {
+		accountName := template.HTMLEscapeString(me.AccountName)
+		buf.WriteString(`          <div><a href="/@`)
+		buf.WriteString(accountName)
+		buf.WriteString(`"><span class="isu-account-name">`)
+		buf.WriteString(accountName)
+		buf.WriteString(`</span>さん</a></div>
+`)
+		if me.Authority == 1 {
+			buf.WriteString(`          <div><a href="/admin/banned">管理者用ページ</a></div>
+`)
+		}
+		buf.WriteString(`          <div><a href="/logout">ログアウト</a></div>
+`)
+	}
+	buf.WriteString(`        </div>
+      </div>
+
+`)
+	buf.WriteString(string(postHTML))
+	buf.WriteString(`
+    </div>
+    <script src="/js/timeago.min.js"></script>
+    <script src="/js/main.js"></script>
+  </body>
+</html>
+`)
+	_, err := w.Write(buf.Bytes())
+	return err
+}
+
 // renderPostListHTML renders only posts that are not already present in the
 // per-post cache. The list cache is invalidated when any visible post data
 // changes, but most posts remain unchanged and can reuse their fragments.
@@ -756,10 +810,7 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 
 	me := getSessionUser(r)
 
-	if err := templates.postID.Execute(w, struct {
-		PostHTML template.HTML
-		Me       User
-	}{postHTML, me}); err != nil {
+	if err := renderPostIDPage(w, postHTML, me); err != nil {
 		log.Print(err)
 	}
 }
