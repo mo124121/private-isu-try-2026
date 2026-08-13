@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	crand "crypto/rand"
 	"crypto/sha512"
@@ -29,17 +30,18 @@ import (
 )
 
 var (
-	db                    *sqlx.DB
-	store                 *gsm.MemcacheStore
-	indexCache            indexPostsCache
-	userCache             userCacheStore
-	postCache             postCacheStore
-	commentCountCache     commentCountCacheStore
-	userCommentCountCache userCommentCountCacheStore
-	loginCache            loginCacheStore
-	profileCache          accountProfileCache
-	commentsCache         commentsCacheStore
-	templates             struct {
+	db                       *sqlx.DB
+	store                    *gsm.MemcacheStore
+	indexCache               indexPostsCache
+	userCache                userCacheStore
+	postCache                postCacheStore
+	commentCountCache        commentCountCacheStore
+	userCommentCountCache    userCommentCountCacheStore
+	loginCache               loginCacheStore
+	profileCache             accountProfileCache
+	commentsCache            commentsCacheStore
+	indexPostsHTMLCacheStore indexPostsHTMLCache
+	templates                struct {
 		index    *template.Template
 		login    *template.Template
 		register *template.Template
@@ -120,6 +122,7 @@ func dbInitialize(ctx context.Context) {
 	loginCache.invalidate()
 	profileCache.invalidateAll()
 	commentsCache.invalidateAll()
+	indexPostsHTMLCacheStore.invalidate()
 
 	// コメント一覧の絞り込みと created_at 順の取得を同じインデックスで処理できるようにする。
 	// initialize はベンチマークごとに呼ばれるため、既存の場合はエラーにしない。
@@ -427,18 +430,30 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, err := makePosts(ctx, results, getCSRFToken(r), false)
-	if err != nil {
-		log.Print(err)
-		return
+	postsHTML, ok := indexPostsHTMLCacheStore.load()
+	if !ok {
+		posts, err := makePosts(ctx, results, indexCSRFPlaceholder, false)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+
+		var buf bytes.Buffer
+		if err := templates.posts.Execute(&buf, posts); err != nil {
+			log.Print(err)
+			return
+		}
+		postsHTML = template.HTML(buf.String())
+		indexPostsHTMLCacheStore.store(postsHTML)
 	}
+	postsHTML = template.HTML(strings.ReplaceAll(string(postsHTML), indexCSRFPlaceholder, template.HTMLEscapeString(getCSRFToken(r))))
 
 	if err := templates.index.Execute(w, struct {
-		Posts     []Post
+		PostsHTML template.HTML
 		Me        User
 		CSRFToken string
 		Flash     string
-	}{posts, me, getCSRFToken(r), getFlash(w, r, "notice")}); err != nil {
+	}{postsHTML, me, getCSRFToken(r), getFlash(w, r, "notice")}); err != nil {
 		log.Print(err)
 	}
 }
@@ -678,6 +693,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	indexCache.invalidate()
+	indexPostsHTMLCacheStore.invalidate()
 	profileCache.invalidatePosts(me.ID)
 
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
@@ -716,6 +732,7 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 	}
 	commentCountCache.invalidate(postID)
 	commentsCache.invalidate(postID)
+	indexPostsHTMLCacheStore.invalidate()
 	userCommentCountCache.invalidate(me.ID)
 
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
@@ -786,6 +803,7 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	indexCache.invalidate()
+	indexPostsHTMLCacheStore.invalidate()
 	loginCache.invalidate()
 
 	http.Redirect(w, r, "/admin/banned", http.StatusFound)

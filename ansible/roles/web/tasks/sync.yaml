@@ -36,6 +36,7 @@
     - "{{ playbook_dir }}/../webapp/golang/login_cache.go"
     - "{{ playbook_dir }}/../webapp/golang/account_profile_cache.go"
     - "{{ playbook_dir }}/../webapp/golang/comments_cache.go"
+    - "{{ playbook_dir }}/../webapp/golang/index_posts_html_cache.go"
     - "{{ playbook_dir }}/../webapp/golang/hash_test.go"
     - "{{ playbook_dir }}/../webapp/golang/image_files.go"
     - "{{ playbook_dir }}/../webapp/golang/post_loader.go"
