@@ -5,7 +5,7 @@ all:
       B: private-isu2
     internal_ips: # 内部IP サービス間の相互接続に使用
       S1: 172.31.9.15
-      B: 172.31.3.119
+      B: 172.31.15.190
     nginx_ip: "{{ internal_ips.S1 }}"
     db_ip: "{{ internal_ips.S1 }}"
     main_web_ip: "{{ internal_ips.S1 }}"
