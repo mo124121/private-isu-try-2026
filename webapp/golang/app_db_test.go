@@ -340,6 +340,41 @@ func TestIndexPostsCacheInvalidationWithSQLite(t *testing.T) {
 	}
 }
 
+func TestPostsPageCacheInvalidationWithSQLite(t *testing.T) {
+	db := newMakePostsTestDB(t)
+	cache := postsPageCacheStore{}
+	ctx := context.Background()
+	cursor := "2026-01-01T00:00:00Z"
+
+	posts, err := cache.load(ctx, db, cursor)
+	if err != nil {
+		t.Fatalf("load posts page: %v", err)
+	}
+	if len(posts) != 2 {
+		t.Fatalf("expected 2 visible posts, got %d", len(posts))
+	}
+
+	if _, err := db.Exec("DELETE FROM posts WHERE id = ?", 2); err != nil {
+		t.Fatalf("delete post fixture: %v", err)
+	}
+	posts, err = cache.load(ctx, db, cursor)
+	if err != nil {
+		t.Fatalf("load cached posts page: %v", err)
+	}
+	if len(posts) != 2 {
+		t.Fatalf("expected cached 2 posts before invalidation, got %d", len(posts))
+	}
+
+	cache.invalidate()
+	posts, err = cache.load(ctx, db, cursor)
+	if err != nil {
+		t.Fatalf("load invalidated posts page: %v", err)
+	}
+	if len(posts) != 1 {
+		t.Fatalf("expected 1 post after invalidation, got %d", len(posts))
+	}
+}
+
 func equalInts(left, right []int) bool {
 	if len(left) != len(right) {
 		return false

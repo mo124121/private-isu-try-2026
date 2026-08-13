@@ -33,6 +33,7 @@ var (
 	db                       *sqlx.DB
 	store                    *gsm.MemcacheStore
 	indexCache               indexPostsCache
+	postsPageCache           postsPageCacheStore
 	userCache                userCacheStore
 	postCache                postCacheStore
 	commentCountCache        commentCountCacheStore
@@ -117,6 +118,7 @@ func dbInitialize(ctx context.Context) {
 		db.ExecContext(ctx, sql)
 	}
 	indexCache.invalidate()
+	postsPageCache.invalidate()
 	userCache.invalidate()
 	postCache.invalidate()
 	commentCountCache.invalidate()
@@ -658,14 +660,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
-	err = db.SelectContext(ctx, &results, `
-		SELECT p.id, p.user_id, p.body, p.mime, p.created_at
-		FROM posts AS p
-		INNER JOIN users AS u ON u.id = p.user_id AND u.del_flg = 0
-		WHERE p.created_at <= ?
-		ORDER BY p.created_at DESC
-		LIMIT ?`, t.Format(ISO8601Format), postsPerPage)
+	results, err := postsPageCache.load(ctx, db, t.Format(ISO8601Format))
 	if err != nil {
 		log.Print(err)
 		return
@@ -832,6 +827,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	indexCache.invalidate()
+	postsPageCache.invalidate()
 	indexPostsHTMLCacheStore.invalidate()
 	profileCache.appendPost(Post{
 		ID:        int(pid),
@@ -949,6 +945,7 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	indexCache.invalidate()
+	postsPageCache.invalidate()
 	indexPostsHTMLCacheStore.invalidate()
 	postHTMLCacheStore.invalidate()
 	loginCache.invalidate()

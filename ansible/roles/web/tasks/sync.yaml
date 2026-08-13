@@ -31,6 +31,7 @@
     - "{{ playbook_dir }}/../webapp/golang/index_cache.go"
     - "{{ playbook_dir }}/../webapp/golang/user_cache.go"
     - "{{ playbook_dir }}/../webapp/golang/post_cache.go"
+    - "{{ playbook_dir }}/../webapp/golang/posts_page_cache.go"
     - "{{ playbook_dir }}/../webapp/golang/comment_count_cache.go"
     - "{{ playbook_dir }}/../webapp/golang/user_comment_count_cache.go"
     - "{{ playbook_dir }}/../webapp/golang/login_cache.go"
