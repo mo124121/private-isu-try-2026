@@ -41,6 +41,7 @@
     - "{{ playbook_dir }}/../webapp/golang/hash_test.go"
     - "{{ playbook_dir }}/../webapp/golang/image_files.go"
     - "{{ playbook_dir }}/../webapp/golang/post_loader.go"
+    - "{{ playbook_dir }}/../webapp/golang/post_multipart.go"
     - "{{ playbook_dir }}/../webapp/golang/go.mod"
     - "{{ playbook_dir }}/../webapp/golang/go.sum"
 

@@ -777,13 +777,20 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.FormValue("csrf_token") != getCSRFToken(r) {
+	post, err := parsePostMultipart(r)
+	if err != nil {
+		session := getSession(r)
+		session.Values["notice"] = multipartErrorMessage(err)
+		session.Save(r, w)
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	if post.csrf != getCSRFToken(r) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
 
-	file, header, err := r.FormFile("file")
-	if err != nil {
+	if post.fileData == nil {
 		session := getSession(r)
 		session.Values["notice"] = "画像が必須です"
 		session.Save(r, w)
@@ -792,42 +799,8 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mime := ""
-	if file != nil {
-		// 投稿のContent-Typeからファイルのタイプを決定する
-		contentType := header.Header["Content-Type"][0]
-		if strings.Contains(contentType, "jpeg") {
-			mime = "image/jpeg"
-		} else if strings.Contains(contentType, "png") {
-			mime = "image/png"
-		} else if strings.Contains(contentType, "gif") {
-			mime = "image/gif"
-		} else {
-			session := getSession(r)
-			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
-			session.Save(r, w)
-
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
-	}
-
-	filedata, err := io.ReadAll(file)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-
-	if len(filedata) > UploadLimit {
-		session := getSession(r)
-		session.Values["notice"] = "ファイルサイズが大きすぎます"
-		session.Save(r, w)
-
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	body := r.FormValue("body")
+	body := post.body
+	mime := post.mime
 	createdAt := time.Now()
 	// 画像本体はファイルとして保存する。imgdataは既存スキーマ互換のため
 	// 空のBLOBを入れるが、リクエスト経路では参照しない。
@@ -851,7 +824,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
-	if err := saveImageFile(imageDir, pid, mime, filedata); err != nil {
+	if err := saveImageFile(imageDir, pid, mime, post.fileData); err != nil {
 		log.Printf("failed to save image for post %d: %v", pid, err)
 		if _, deleteErr := db.ExecContext(ctx, "DELETE FROM `posts` WHERE `id` = ?", pid); deleteErr != nil {
 			log.Printf("failed to rollback post %d after image save error: %v", pid, deleteErr)
