@@ -475,11 +475,9 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postIDs := []int{}
-	err = db.SelectContext(ctx, &postIDs, "SELECT `id` FROM `posts` WHERE `user_id` = ?", user.ID)
-	if err != nil {
-		log.Print(err)
-		return
+	postIDs := make([]int, 0, len(results))
+	for _, post := range results {
+		postIDs = append(postIDs, post.ID)
 	}
 	postCount := len(postIDs)
 
