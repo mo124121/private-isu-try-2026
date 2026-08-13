@@ -62,3 +62,47 @@ func TestAccountProfileCacheInvalidationWithSQLite(t *testing.T) {
 		t.Fatal("expected banned user lookup to fail after invalidation")
 	}
 }
+
+func TestAccountProfileCacheAppendPost(t *testing.T) {
+	db := newMakePostsTestDB(t)
+	cache := accountProfileCache{}
+	ctx := context.Background()
+
+	if _, err := cache.loadPosts(ctx, db, 1); err != nil {
+		t.Fatalf("warm profile posts cache: %v", err)
+	}
+
+	newPost := Post{
+		ID:        10,
+		UserID:    1,
+		Body:      "new post",
+		Mime:      "image/png",
+		CreatedAt: time.Date(2026, time.January, 2, 0, 0, 0, 0, time.UTC),
+	}
+	cache.appendPost(newPost)
+	posts, err := cache.loadPosts(ctx, db, 1)
+	if err != nil {
+		t.Fatalf("load appended profile posts: %v", err)
+	}
+	if len(posts) != 2 || posts[0].ID != newPost.ID {
+		t.Fatalf("expected appended post at the front, got %#v", posts)
+	}
+
+	cache.appendPost(newPost)
+	posts, err = cache.loadPosts(ctx, db, 1)
+	if err != nil {
+		t.Fatalf("load deduplicated profile posts: %v", err)
+	}
+	if len(posts) != 2 {
+		t.Fatalf("expected duplicate append to be ignored, got %d posts", len(posts))
+	}
+
+	cache.appendPost(Post{ID: 11, UserID: 2})
+	posts, err = cache.loadPosts(ctx, db, 2)
+	if err != nil {
+		t.Fatalf("load uncached profile posts: %v", err)
+	}
+	if len(posts) != 1 || posts[0].ID != 2 {
+		t.Fatalf("uncached user should not receive partial cache, got %#v", posts)
+	}
+}

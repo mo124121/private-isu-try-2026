@@ -94,6 +94,24 @@ func (c *accountProfileCache) invalidatePosts(userID int) {
 	c.generation++
 }
 
+// appendPost updates an already-warmed profile cache without issuing another
+// query. A cache entry is only updated when it already exists; creating an
+// entry for an uncached user would produce an incomplete post list.
+func (c *accountProfileCache) appendPost(post Post) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	posts, ok := c.posts[post.UserID]
+	if !ok {
+		return
+	}
+	for _, cached := range posts {
+		if cached.ID == post.ID {
+			return
+		}
+	}
+	c.posts[post.UserID] = append([]Post{post}, posts...)
+}
+
 func (c *accountProfileCache) invalidateUser(userID int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

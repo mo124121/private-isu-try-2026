@@ -739,16 +739,19 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	body := r.FormValue("body")
+	createdAt := time.Now()
 	// 画像本体はファイルとして保存する。imgdataは既存スキーマ互換のため
 	// 空のBLOBを入れるが、リクエスト経路では参照しない。
-	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
+	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`, `created_at`) VALUES (?,?,?,?,?)"
 	result, err := db.ExecContext(
 		ctx,
 		query,
 		me.ID,
 		mime,
 		[]byte{},
-		r.FormValue("body"),
+		body,
+		createdAt,
 	)
 	if err != nil {
 		log.Print(err)
@@ -769,7 +772,13 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	indexCache.invalidate()
 	indexPostsHTMLCacheStore.invalidate()
-	profileCache.invalidatePosts(me.ID)
+	profileCache.appendPost(Post{
+		ID:        int(pid),
+		UserID:    me.ID,
+		Body:      body,
+		Mime:      mime,
+		CreatedAt: createdAt,
+	})
 
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
 }
