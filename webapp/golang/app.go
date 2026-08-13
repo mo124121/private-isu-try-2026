@@ -443,16 +443,93 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		}
 		indexPostsHTMLCacheStore.store(postsHTML)
 	}
-	postsHTML = template.HTML(strings.ReplaceAll(string(postsHTML), indexCSRFPlaceholder, template.HTMLEscapeString(getCSRFToken(r))))
-
-	if err := templates.index.Execute(w, struct {
-		PostsHTML template.HTML
-		Me        User
-		CSRFToken string
-		Flash     string
-	}{postsHTML, me, getCSRFToken(r), getFlash(w, r, "notice")}); err != nil {
+	csrfToken := getCSRFToken(r)
+	postsHTML = template.HTML(strings.ReplaceAll(string(postsHTML), indexCSRFPlaceholder, template.HTMLEscapeString(csrfToken)))
+	if err := renderIndexPage(w, postsHTML, me, csrfToken, getFlash(w, r, "notice")); err != nil {
 		log.Print(err)
 	}
+}
+
+// renderIndexPage writes the fixed index shell directly. The post list is
+// already rendered and cached separately, so executing the full layout and
+// nested templates for every request only adds reflection and traversal cost.
+func renderIndexPage(w io.Writer, postsHTML template.HTML, me User, csrfToken, flash string) error {
+	var buf bytes.Buffer
+	buf.WriteString(`<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Iscogram</title>
+    <link href="/css/style.css" media="screen" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="isu-title">
+          <h1><a href="/">Iscogram</a></h1>
+        </div>
+        <div class="isu-header-menu">
+`)
+	if me.ID == 0 {
+		buf.WriteString(`          <div><a href="/login">ログイン</a></div>
+`)
+	} else {
+		accountName := template.HTMLEscapeString(me.AccountName)
+		buf.WriteString(`          <div><a href="/@`)
+		buf.WriteString(accountName)
+		buf.WriteString(`"><span class="isu-account-name">`)
+		buf.WriteString(accountName)
+		buf.WriteString(`</span>さん</a></div>
+`)
+		if me.Authority == 1 {
+			buf.WriteString(`          <div><a href="/admin/banned">管理者用ページ</a></div>
+`)
+		}
+		buf.WriteString(`          <div><a href="/logout">ログアウト</a></div>
+`)
+	}
+	buf.WriteString(`        </div>
+      </div>
+      <div class="isu-submit">
+        <form method="post" action="/" enctype="multipart/form-data">
+          <div class="isu-form">
+            <input type="file" name="file" value="file">
+          </div>
+          <div class="isu-form">
+            <textarea name="body"></textarea>
+          </div>
+          <div class="form-submit">
+            <input type="hidden" name="csrf_token" value="`)
+	buf.WriteString(template.HTMLEscapeString(csrfToken))
+	buf.WriteString(`">
+            <input type="submit" name="submit" value="submit">
+          </div>
+`)
+	if flash != "" {
+		buf.WriteString(`          <div id="notice-message" class="alert alert-danger">
+            `)
+		buf.WriteString(template.HTMLEscapeString(flash))
+		buf.WriteString(`
+          </div>
+`)
+	}
+	buf.WriteString(`        </form>
+      </div>
+`)
+	buf.WriteString(string(postsHTML))
+	buf.WriteString(`
+      <div id="isu-post-more">
+        <button id="isu-post-more-btn">もっと見る</button>
+        <img class="isu-loading-icon" src="/img/ajax-loader.gif">
+      </div>
+    </div>
+    <script src="/js/timeago.min.js"></script>
+    <script src="/js/main.js"></script>
+  </body>
+</html>
+`)
+	_, err := w.Write(buf.Bytes())
+	return err
 }
 
 // renderPostListHTML renders only posts that are not already present in the
