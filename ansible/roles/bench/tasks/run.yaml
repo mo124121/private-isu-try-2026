@@ -16,6 +16,20 @@
   ansible.builtin.set_fact:
     benchmark_log: "/tmp/benchmarker_{{ benchmark_timestamp }}.log"
 
+- name: Persist benchmark TCP TIME_WAIT reuse setting
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/92-bench-net.conf
+    content: |
+      net.ipv4.tcp_tw_reuse=1
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Apply benchmark TCP TIME_WAIT reuse setting
+  ansible.builtin.command:
+    cmd: sysctl -p /etc/sysctl.d/92-bench-net.conf
+  changed_when: false
+
 - name: Run benchmark
   block:
     - name: Execute benchmarker
