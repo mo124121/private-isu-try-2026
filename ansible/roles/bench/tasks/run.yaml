@@ -41,6 +41,8 @@
       args:
         executable: /bin/bash
         chdir: "{{ benchmarker_workdir }}"
+      environment:
+        GOGC: "400"
       become_user: isucon
       register: benchmark_result
       changed_when: true

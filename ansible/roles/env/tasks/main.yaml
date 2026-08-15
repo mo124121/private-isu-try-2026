@@ -8,3 +8,11 @@
     group: root
     mode: "0644"
     backup: false
+  register: env_file
+
+- name: Restart Go service after environment changes
+  become: true
+  ansible.builtin.systemd_service:
+    name: isu-go.service
+    state: restarted
+  when: env_file.changed

@@ -297,9 +297,6 @@ func getInitialize(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to clean up images", http.StatusInternalServerError)
 		return
 	}
-	if err := isuutil.KickPproteinCollect(); err != nil {
-		log.Printf("pprotein collect was not started: %v", err)
-	}
 	w.WriteHeader(http.StatusOK)
 }
 
